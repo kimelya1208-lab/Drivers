@@ -85,6 +85,64 @@ namespace DriverMatching
 
             return result;
         }
+        public static List<Driver> FindNearestDriversTopK(List<Driver> drivers, Order order, int k)
+        {
+            var bestDrivers = new List<Driver>();
+            var bestDistances = new List<int>();
+
+            for (int i = 0; i < drivers.Count; i++)
+            {
+                Driver currentDriver = drivers[i];
+                int currentDist = DistanceSquared(currentDriver, order);
+
+                if (bestDrivers.Count < k)
+                {
+                    bestDrivers.Add(currentDriver);
+                    bestDistances.Add(currentDist);
+
+                    int index = bestDrivers.Count - 1;
+                    while (index > 0 && bestDistances[index] < bestDistances[index - 1])
+                    {
+                        int tempDist = bestDistances[index];
+                        bestDistances[index] = bestDistances[index - 1];
+                        bestDistances[index - 1] = tempDist;
+
+                        Driver tempDriver = bestDrivers[index];
+                        bestDrivers[index] = bestDrivers[index - 1];
+                        bestDrivers[index - 1] = tempDriver;
+
+                        index--;
+                    }
+                }
+                else
+                {
+                    int worstIndex = k - 1;
+                    if (currentDist >= bestDistances[worstIndex])
+                    {
+                        continue;
+                    }
+
+                    bestDrivers[worstIndex] = currentDriver;
+                    bestDistances[worstIndex] = currentDist;
+
+                    int index = worstIndex;
+                    while (index > 0 && bestDistances[index] < bestDistances[index - 1])
+                    {
+                        int tempDist = bestDistances[index];
+                        bestDistances[index] = bestDistances[index - 1];
+                        bestDistances[index - 1] = tempDist;
+
+                        Driver tempDriver = bestDrivers[index];
+                        bestDrivers[index] = bestDrivers[index - 1];
+                        bestDrivers[index - 1] = tempDriver;
+
+                        index--;
+                    }
+                }
+            }
+
+            return bestDrivers;
+        }
     }
     namespace Drivers
     {
@@ -106,8 +164,15 @@ namespace DriverMatching
 
                 var order = new Order(2, 2);
                 var nearestNaive = DriverMatcher.FindNearestDriversNaive(drivers, order, 5);
+                var nearestTopK = DriverMatcher.FindNearestDriversTopK(drivers, order, 5);
                 Console.WriteLine("Ближайшие водители к заказу ({0}, {1}) — наивный алгоритм:", order.X, order.Y);
                 foreach (var d in nearestNaive)
+                {
+                    Console.WriteLine($"Id = {d.Id}, X = {d.X}, Y = {d.Y}");
+                }
+                Console.WriteLine();
+                Console.WriteLine("Ближайшие водители к заказу ({0}, {1}) — алгоритм TopK:", order.X, order.Y);
+                foreach (var d in nearestTopK)
                 {
                     Console.WriteLine($"Id = {d.Id}, X = {d.X}, Y = {d.Y}");
                 }
